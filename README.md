@@ -1,1 +1,1 @@
-.obj render winh OpenTK in C#
+.obj render with OpenTK in C#
