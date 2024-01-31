@@ -92,9 +92,9 @@ namespace OpenGL
              0.5f, -0.5f, 0.0f, // Bottom-right vertex
              0.0f,  0.5f, 0.0f  // Top vertex
         };
-        Random r = new Random();
+        Random rng = new Random();
 
-        public Matrix4 rotMatX, rotMatY, rotMatZ, projMat;
+        public Matrix4 rotMatX, rotMatY, rotMatZ, projMat, tranMat, finMat;
 
         // These are the handles to OpenGL objects. A handle is an integer representing where the object lives on the
         // graphics card. Consider them sort of like a pointer; we can't do anything with them directly, but we can
@@ -107,8 +107,15 @@ namespace OpenGL
 
         private float aspectf = 1;
 
+        Vector3 camPos = new Vector3(0, 0, -5);
+
         private double FPS;
-        private double UPS;
+        int Fov = 90;
+
+        float n = 0.5f;  // Near clipping plane distance
+        float r = 1.0f;  // Right coordinate of the near clipping plane
+        float t = 1.0f;  // Top coordinate of the near clipping plane
+        float f = 1000.0f;  // Far clipping plane distance
 
         private List<float[]> _triangleVerticesList = new List<float[]>();
         private List<float[]> _triangleDrawVerticesList = new List<float[]>();
@@ -156,10 +163,20 @@ namespace OpenGL
             };
             projMat = new Matrix4
             {
+                M11 = 1 / MathF.Tan(Fov / 2f * MathF.PI / 180),
+                M22 = 1 / MathF.Tan(Fov / 2f * MathF.PI / 180),
+                M33 = 1,
+                M43 = 1
+            };
+            tranMat = new Matrix4
+            {
                 M11 = 1f,
                 M22 = 1f,
+                M33 = 1f,
+                M34 = -10f, // offset
                 M44 = 1f
             };
+            //finMat = projMat * tranMat;
 
             aspectf = (float)Size.X / (float)Size.Y;
             mesh.LoadFromObjectFile("Cube.obj");
@@ -224,9 +241,22 @@ namespace OpenGL
                 p2 = Vector3.TransformPosition(p2, rotMatZ);
                 p3 = Vector3.TransformPosition(p3, rotMatZ);
 
+                p1 += camPos;
+                p2 += camPos;
+                p3 += camPos;
+
                 p1 = Vector3.TransformPosition(p1, projMat);
                 p2 = Vector3.TransformPosition(p2, projMat);
                 p3 = Vector3.TransformPosition(p3, projMat);
+
+                p1.X = p1.X / p1.Z;
+                p1.Y = p1.Y / p1.Z;
+
+                p2.X = p2.X / p2.Z;
+                p2.Y = p2.Y / p2.Z;
+
+                p3.X = p3.X / p3.Z;
+                p3.Y = p3.Y / p3.Z;
 
                 float[] t2 = { p1.X / aspectf, p1.Y, p1.Z, p2.X / aspectf, p2.Y, p2.Z, p3.X / aspectf, p3.Y, p3.Z };
                 Vector3 normal, line1, line2;
@@ -248,7 +278,7 @@ namespace OpenGL
                 normal.Y /= l;
                 normal.Z /= l;
 
-                if (normal.Z > 0)
+                if (normal.Z < 0)
                 {
                     addFilledTriangle(t2);
                     addDrawTriangle(t2);
@@ -365,17 +395,38 @@ namespace OpenGL
                 M22 = (float)Math.Cos(tickdeg * 1.0),
                 M33 = 1.0f
             };
-            projMat = new Matrix4
-            {
-                M11 = 1f,
-                M22 = 1f,
-                M44 = 1f
-            };
 
             var input = KeyboardState;
             if (input.IsKeyDown(Keys.Escape))
             {
                 Close();
+            }
+
+            // camera controls
+
+            if (input.IsKeyDown(Keys.W))
+            {
+                camPos.Z += 0.1f;
+            }
+            if (input.IsKeyDown(Keys.A))
+            {
+                camPos.X -= 0.1f;
+            }
+            if (input.IsKeyDown(Keys.S))
+            {
+                camPos.Z -= 0.1f;
+            }
+            if (input.IsKeyDown(Keys.D))
+            {
+                camPos.X += 0.1f;
+            }
+            if (input.IsKeyDown(Keys.E))
+            {
+                camPos.Y += 0.1f;
+            }
+            if (input.IsKeyDown(Keys.Q))
+            {
+                camPos.Y -= 0.1f;
             }
         }
 
