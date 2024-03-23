@@ -109,8 +109,10 @@ namespace OpenGL
 
         Vector3 camPos = new Vector3(0, 0, -5);
 
-        private double FPS;
+        double FPS;
         int Fov = 90;
+        bool drawtri = true;
+        bool filltri = true;
 
         float n = 0.5f;  // Near clipping plane distance
         float r = 1.0f;  // Right coordinate of the near clipping plane
@@ -217,9 +219,18 @@ namespace OpenGL
         {
             base.OnRenderFrame(e);
 
-            // Clear the color buffer
             GL.ClearColor(0.0f, 0.0f, 0.0f, 1);
             GL.Clear(ClearBufferMask.ColorBufferBit);
+
+            if (!filltri && !drawtri)
+            {
+
+                // Swap the back buffer to the front
+                SwapBuffers();
+                return;
+            }
+
+            // Clear the color buffer
 
             // Use the shader program for filled triangles
             _shader.Use();
@@ -280,8 +291,14 @@ namespace OpenGL
 
                 if (normal.Z < 0)
                 {
-                    addFilledTriangle(t2);
-                    addDrawTriangle(t2);
+                    if (drawtri)
+                    {
+                        addDrawTriangle(t2);
+                    }
+                    if (filltri)
+                    {
+                        addFilledTriangle(t2);
+                    }
                 }
             }
 
@@ -427,6 +444,20 @@ namespace OpenGL
             if (input.IsKeyDown(Keys.Q))
             {
                 camPos.Y -= 0.1f;
+            }
+
+            // general controls
+            if (input.IsKeyPressed(Keys.F))
+            {
+                filltri = !filltri;
+            }
+            if (input.IsKeyPressed(Keys.G))
+            {
+                drawtri = !drawtri;
+            }
+            if (input.IsKeyPressed(Keys.R))
+            {
+                tick = 0;
             }
         }
 
