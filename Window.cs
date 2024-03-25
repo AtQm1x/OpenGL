@@ -29,55 +29,56 @@ namespace OpenGL
 
             public bool LoadFromObjectFile(string sFilename)
             {
-                using (StreamReader file = new StreamReader(sFilename))
-                {
-                    Tris = new List<tri>();
-                    if (file == null)
-                        return false;
-
-                    // Local cache of verts
-                    List<Vector3> verts = new List<Vector3>();
-
-                    while (!file.EndOfStream)
+                if (File.Exists(sFilename))
+                    using (StreamReader file = new StreamReader(sFilename))
                     {
-                        string line = file.ReadLine();
-                        line = line.Replace('.', ',');
-                        string[] tokens = line.Split(' ');
+                        Tris = new List<tri>();
+                        if (file == null)
+                            return false;
 
-                        if (tokens.Length < 1)
-                            continue;
+                        // Local cache of verts
+                        List<Vector3> verts = new List<Vector3>();
 
-                        char firstChar = tokens[0][0];
-
-                        if (firstChar == 'v')
+                        while (!file.EndOfStream)
                         {
-                            float x, y, z;
-                            if (float.TryParse(tokens[1], out x) && float.TryParse(tokens[2], out y) && float.TryParse(tokens[3], out z))
-                            {
-                                verts.Add(new Vector3(x, y, z));
-                            }
-                            else
-                            {
-                                tokens[1] = tokens[1].Replace('.', ',');
-                                tokens[2] = tokens[2].Replace('.', ',');
-                                tokens[3] = tokens[3].Replace('.', ',');
-                                float.TryParse(tokens[1], out x);
-                                float.TryParse(tokens[2], out y);
-                                float.TryParse(tokens[3], out z);
-                                verts.Add(new Vector3(x, y, z));
-                            }
-                        }
+                            string line = file.ReadLine();
+                            line = line.Replace('.', ',');
+                            string[] tokens = line.Split(' ');
 
-                        if (firstChar == 'f')
-                        {
-                            int[] f = new int[3];
-                            if (int.TryParse(tokens[1], out f[0]) && int.TryParse(tokens[2], out f[1]) && int.TryParse(tokens[3], out f[2]))
+                            if (tokens.Length < 1)
+                                continue;
+
+                            char firstChar = tokens[0][0];
+
+                            if (firstChar == 'v')
                             {
-                                Tris.Add(new tri(verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1]));
+                                float x, y, z;
+                                if (float.TryParse(tokens[1], out x) && float.TryParse(tokens[2], out y) && float.TryParse(tokens[3], out z))
+                                {
+                                    verts.Add(new Vector3(x, y, z));
+                                }
+                                else
+                                {
+                                    tokens[1] = tokens[1].Replace('.', ',');
+                                    tokens[2] = tokens[2].Replace('.', ',');
+                                    tokens[3] = tokens[3].Replace('.', ',');
+                                    float.TryParse(tokens[1], out x);
+                                    float.TryParse(tokens[2], out y);
+                                    float.TryParse(tokens[3], out z);
+                                    verts.Add(new Vector3(x, y, z));
+                                }
+                            }
+
+                            if (firstChar == 'f')
+                            {
+                                int[] f = new int[3];
+                                if (int.TryParse(tokens[1], out f[0]) && int.TryParse(tokens[2], out f[1]) && int.TryParse(tokens[3], out f[2]))
+                                {
+                                    Tris.Add(new tri(verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1]));
+                                }
                             }
                         }
                     }
-                }
                 return true;
             }
         }
@@ -234,73 +235,74 @@ namespace OpenGL
 
             // Use the shader program for filled triangles
             _shader.Use();
-            foreach (tri t in mesh.Tris)
-            {
-                Vector3 p1 = t.p[0] / 1000000 / 2;
-                Vector3 p2 = t.p[1] / 1000000 / 2;
-                Vector3 p3 = t.p[2] / 1000000 / 2;
-
-                p1 = Vector3.TransformPosition(p1, rotMatX);
-                p2 = Vector3.TransformPosition(p2, rotMatX);
-                p3 = Vector3.TransformPosition(p3, rotMatX);
-
-                p1 = Vector3.TransformPosition(p1, rotMatY);
-                p2 = Vector3.TransformPosition(p2, rotMatY);
-                p3 = Vector3.TransformPosition(p3, rotMatY);
-
-                p1 = Vector3.TransformPosition(p1, rotMatZ);
-                p2 = Vector3.TransformPosition(p2, rotMatZ);
-                p3 = Vector3.TransformPosition(p3, rotMatZ);
-
-                p1 += camPos;
-                p2 += camPos;
-                p3 += camPos;
-
-                p1 = Vector3.TransformPosition(p1, projMat);
-                p2 = Vector3.TransformPosition(p2, projMat);
-                p3 = Vector3.TransformPosition(p3, projMat);
-
-                p1.X = p1.X / p1.Z;
-                p1.Y = p1.Y / p1.Z;
-
-                p2.X = p2.X / p2.Z;
-                p2.Y = p2.Y / p2.Z;
-
-                p3.X = p3.X / p3.Z;
-                p3.Y = p3.Y / p3.Z;
-
-                float[] t2 = { p1.X / aspectf, p1.Y, p1.Z, p2.X / aspectf, p2.Y, p2.Z, p3.X / aspectf, p3.Y, p3.Z };
-                Vector3 normal, line1, line2;
-
-                line1.X = t2[0] - t2[3];
-                line1.Y = t2[1] - t2[4];
-                line1.Z = t2[2] - t2[5];
-
-                line2.X = t2[6] - t2[3];
-                line2.Y = t2[7] - t2[4];
-                line2.Z = t2[8] - t2[5];
-
-                normal.X = line1.Y * line2.Z - line1.Z * line2.Y;
-                normal.Y = line1.Z * line2.X - line1.X * line2.Z;
-                normal.Z = line1.X * line2.Y - line1.Y * line2.X;
-
-                float l = (float)Math.Sqrt((double)(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z));
-                normal.X /= l;
-                normal.Y /= l;
-                normal.Z /= l;
-
-                if (normal.Z < 0)
+            if (mesh.Tris != null)
+                foreach (tri t in mesh.Tris)
                 {
-                    if (drawtri)
+                    Vector3 p1 = t.p[0] / 1000000 / 2;
+                    Vector3 p2 = t.p[1] / 1000000 / 2;
+                    Vector3 p3 = t.p[2] / 1000000 / 2;
+
+                    p1 = Vector3.TransformPosition(p1, rotMatX);
+                    p2 = Vector3.TransformPosition(p2, rotMatX);
+                    p3 = Vector3.TransformPosition(p3, rotMatX);
+
+                    p1 = Vector3.TransformPosition(p1, rotMatY);
+                    p2 = Vector3.TransformPosition(p2, rotMatY);
+                    p3 = Vector3.TransformPosition(p3, rotMatY);
+
+                    p1 = Vector3.TransformPosition(p1, rotMatZ);
+                    p2 = Vector3.TransformPosition(p2, rotMatZ);
+                    p3 = Vector3.TransformPosition(p3, rotMatZ);
+
+                    p1 += camPos;
+                    p2 += camPos;
+                    p3 += camPos;
+
+                    p1 = Vector3.TransformPosition(p1, projMat);
+                    p2 = Vector3.TransformPosition(p2, projMat);
+                    p3 = Vector3.TransformPosition(p3, projMat);
+
+                    p1.X = p1.X / p1.Z;
+                    p1.Y = p1.Y / p1.Z;
+
+                    p2.X = p2.X / p2.Z;
+                    p2.Y = p2.Y / p2.Z;
+
+                    p3.X = p3.X / p3.Z;
+                    p3.Y = p3.Y / p3.Z;
+
+                    float[] t2 = { p1.X / aspectf, p1.Y, p1.Z, p2.X / aspectf, p2.Y, p2.Z, p3.X / aspectf, p3.Y, p3.Z };
+                    Vector3 normal, line1, line2;
+
+                    line1.X = t2[0] - t2[3];
+                    line1.Y = t2[1] - t2[4];
+                    line1.Z = t2[2] - t2[5];
+
+                    line2.X = t2[6] - t2[3];
+                    line2.Y = t2[7] - t2[4];
+                    line2.Z = t2[8] - t2[5];
+
+                    normal.X = line1.Y * line2.Z - line1.Z * line2.Y;
+                    normal.Y = line1.Z * line2.X - line1.X * line2.Z;
+                    normal.Z = line1.X * line2.Y - line1.Y * line2.X;
+
+                    float l = (float)Math.Sqrt((double)(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z));
+                    normal.X /= l;
+                    normal.Y /= l;
+                    normal.Z /= l;
+
+                    if (normal.Z < 0)
                     {
-                        addDrawTriangle(t2);
-                    }
-                    if (filltri)
-                    {
-                        addFilledTriangle(t2);
+                        if (drawtri)
+                        {
+                            addDrawTriangle(t2);
+                        }
+                        if (filltri)
+                        {
+                            addFilledTriangle(t2);
+                        }
                     }
                 }
-            }
 
             fillTriangles();
 
